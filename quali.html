@@ -27,6 +27,17 @@
             margin-bottom: 20px;
             text-align: center;
         }
+        .nav-back {
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+        .nav-back a {
+            color: #666;
+            text-decoration: none;
+        }
+        .nav-back a:hover {
+            text-decoration: underline;
+        }
         .game-container {
             max-width: 600px;
             width: 100%;
@@ -139,6 +150,23 @@
         button.btn-primary:hover {
             background-color: #333;
         }
+        .solution-section {
+            text-align: center;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        button.btn-solution {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        button.btn-solution:hover {
+            color: #333;
+        }
         .status-bar {
             text-align: center;
             font-size: 0.95rem;
@@ -172,6 +200,10 @@
 </head>
 <body>
 
+<div class="nav-back">
+    <a href="index.html">← Zurück zur Startseite</a>
+</div>
+
 <div class="game-container">
     <h1>New York Times Connections</h1>
     <h2>Special: Qualitative Sozialforschung</h2>
@@ -195,6 +227,10 @@
     </div>
 
     <div class="status-bar" id="status-bar"></div>
+
+    <div class="solution-section">
+        <button class="btn-solution" onclick="showFullSolution()">Komplette Lösung anzeigen</button>
+    </div>
 </div>
 
 <script>
@@ -348,6 +384,19 @@
         } else {
             showStatus("Das war noch nicht der richtige Begriff für die Überschrift. Probier's nochmal!", "orange");
         }
+    }
+
+    function showFullSolution() {
+        solvedCategories = groups.map(g => ({
+            ...g,
+            guessed: true
+        }));
+        currentTiles = [];
+        selectedTiles = [];
+        renderSolvedGroups();
+        renderGrid();
+        showStatus("Lösung vollständig aufgedeckt.", "blue");
+        document.getElementById('action-controls').style.display = 'none';
     }
 
     function renderSolvedGroups() {
