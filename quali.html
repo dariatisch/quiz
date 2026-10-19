@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connections: Qualitative Sozialforschung</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        h2 {
+            font-size: 1.1rem;
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .game-container {
+            max-width: 600px;
+            width: 100%;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .solved-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .solved-group {
+            padding: 15px;
+            border-radius: 8px;
+            color: #333;
+            text-align: center;
+            font-weight: bold;
+            animation: fadeIn 0.5s ease-in-out;
+            border: 2px dashed rgba(0,0,0,0.1);
+        }
+        .solved-title {
+            font-size: 1.05rem;
+            margin-bottom: 5px;
+            color: #111;
+        }
+        .category-input-container {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            align-items: center;
+        }
+        .category-input {
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 0.9rem;
+            width: 70%;
+        }
+        .category-btn {
+            padding: 5px 10px;
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .solved-words {
+            font-size: 0.95rem;
+            font-weight: normal;
+            margin-top: 5px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tile {
+            background-color: #efefef;
+            border: none;
+            border-radius: 8px;
+            padding: 20px 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 60px;
+            word-break: break-word;
+        }
+        .tile:hover {
+            background-color: #e2e2e2;
+        }
+        .tile.selected {
+            background-color: #5a5a5a;
+            color: white;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        button.btn {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button.btn:hover {
+            background-color: #f0f0f0;
+        }
+        button.btn-primary {
+            background-color: #000;
+            color: #fff;
+            border: none;
+        }
+        button.btn-primary:hover {
+            background-color: #333;
+        }
+        .status-bar {
+            text-align: center;
+            font-size: 0.95rem;
+            margin-top: 10px;
+            min-height: 24px;
+        }
+        .mistakes {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            background-color: #333;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot.lost {
+            background-color: #ccc;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>New York Times Connections</h1>
+    <h2>Special: Qualitative Sozialforschung</h2>
+
+    <div class="mistakes" id="mistakes-container">
+        Fehler übrig: 
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+    </div>
+
+    <div class="solved-groups" id="solved-groups"></div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="controls" id="action-controls">
+        <button class="btn" onclick="shuffleTiles()">Mischen</button>
+        <button class="btn" onclick="deselectAll()">Auswahl aufheben</button>
+        <button class="btn btn-primary" onclick="submitGuess()">Abschicken</button>
+    </div>
+
+    <div class="status-bar" id="status-bar"></div>
+</div>
+
+<script>
+    const groups = [
+        {
+            title: "Leitlinien qualitativer Forschung",
+            keywords: ["leitlinien", "prinzipien", "merkmale", "charakteristika"],
+            words: ["qualitativ", "interpretativ", "rekonstruktiv", "reflexiv"],
+            color: "#f5d76f"
+        },
+        {
+            title: "Datentypen",
+            keywords: ["datentypen", "daten", "material"],
+            words: ["Texte", "Bilder", "Audio", "Video"],
+            color: "#a3e4d7"
+        },
+        {
+            title: "Forschungslogik / Wissenschaftstheorie",
+            keywords: ["forschungslosik", "wissenschaftstheorie", "theorie", "zielsetzung", "ausrichtung"],
+            words: ["Theorie", "Empirie", "induktiv", "deduktiv"],
+            color: "#f9e79f"
+        },
+        {
+            title: "Forschungsprozess",
+            keywords: ["forschungsprozess", "prozess", "ablauf", "schritte"],
+            words: ["Zugang", "Design", "Schreiben", "Ethik"],
+            color: "#bb8fce"
+        }
+    ];
+
+    let currentTiles = [];
+    let selectedTiles = [];
+    let mistakesLeft = 4;
+    let solvedCategories = [];
+
+    function initGame() {
+        currentTiles = [];
+        groups.forEach((group, groupIndex) => {
+            group.words.forEach(word => {
+                currentTiles.push({ word, groupIndex });
+            });
+        });
+        shuffleTiles();
+    }
+
+    function shuffleTiles() {
+        for (let i = currentTiles.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [currentTiles[i], currentTiles[j]] = [currentTiles[j], currentTiles[i]];
+        }
+        renderGrid();
+    }
+
+    function renderGrid() {
+        const gridEl = document.getElementById('grid');
+        gridEl.innerHTML = '';
+        
+        currentTiles.forEach((tile, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'tile';
+            if (selectedTiles.includes(index)) {
+                btn.classList.add('selected');
+            }
+            btn.innerText = tile.word;
+            btn.onclick = () => toggleSelect(index);
+            gridEl.appendChild(btn);
+        });
+    }
+
+    function toggleSelect(index) {
+        const pos = selectedTiles.indexOf(index);
+        if (pos > -1) {
+            selectedTiles.splice(pos, 1);
+        } else {
+            if (selectedTiles.length < 4) {
+                selectedTiles.push(index);
+            }
+        }
+        renderGrid();
+    }
+
+    function deselectAll() {
+        selectedTiles = [];
+        renderGrid();
+    }
+
+    function updateMistakesDisplay() {
+        const dots = document.querySelectorAll('.dot');
+        dots.forEach((dot, index) => {
+            if (index < mistakesLeft) {
+                dot.classList.remove('lost');
+            } else {
+                dot.classList.add('lost');
+            }
+        });
+    }
+
+    function submitGuess() {
+        if (selectedTiles.length !== 4) {
+            showStatus("Bitte genau 4 Begriffe auswählen!", "orange");
+            return;
+        }
+
+        const selectedGroupIndices = selectedTiles.map(i => currentTiles[i].groupIndex);
+        const firstGroup = selectedGroupIndices[0];
+        const isMatch = selectedGroupIndices.every(g => g === firstGroup);
+
+        if (isMatch) {
+            const foundGroup = groups[firstGroup];
+            solvedCategories.push({
+                ...foundGroup,
+                guessed: false,
+                userTitleText: ""
+            });
+
+            currentTiles = currentTiles.filter(t => t.groupIndex !== firstGroup);
+            selectedTiles = [];
+            
+            renderSolvedGroups();
+            renderGrid();
+            showStatus("Richtig! Jetzt die passende Überschrift eingeben.", "green");
+
+            checkWinCondition();
+        } else {
+            mistakesLeft--;
+            updateMistakesDisplay();
+            selectedTiles = [];
+            renderGrid();
+
+            if (mistakesLeft <= 0) {
+                showStatus("Leider verloren! Das Spiel ist vorbei.", "red");
+                document.getElementById('action-controls').style.display = 'none';
+            } else {
+                showStatus("Leider falsch. Versuch es nochmal!", "red");
+            }
+        }
+    }
+
+    function checkCategoryTitle(index) {
+        const inputField = document.getElementById(`input-${index}`);
+        const userText = inputField.value.trim().toLowerCase();
+        const targetGroup = solvedCategories[index];
+
+        const isCorrect = targetGroup.keywords.some(kw => userText.includes(kw));
+
+        if (isCorrect || userText === targetGroup.title.toLowerCase()) {
+            targetGroup.guessed = true;
+            renderSolvedGroups();
+            showStatus("Super! Kategorie-Name erraten!", "green");
+            checkWinCondition();
+        } else {
+            showStatus("Das war noch nicht der richtige Begriff für die Überschrift. Probier's nochmal!", "orange");
+        }
+    }
+
+    function renderSolvedGroups() {
+        const container = document.getElementById('solved-groups');
+        container.innerHTML = '';
+        solvedCategories.forEach((cat, index) => {
+            const div = document.createElement('div');
+            div.className = 'solved-group';
+            div.style.backgroundColor = cat.color;
+            
+            if (cat.guessed) {
+                div.innerHTML = `
+                    <div class="solved-title" style="font-weight: bold; font-size: 1.1rem;">${cat.title}</div>
+                    <div class="solved-words">${cat.words.join(', ')}</div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="solved-title">🔒 <em>Kategorie ${index + 1} erraten! Wie lautet die Überschrift?</em></div>
+                    <div class="category-input-container">
+                        <input type="text" id="input-${index}" class="category-input" placeholder="Überschrift eingeben...">
+                        <button class="category-btn" onclick="checkCategoryTitle(${index})">Prüfen</button>
+                    </div>
+                    <div class="solved-words">${cat.words.join(', ')}</div>
+                `;
+            }
+            container.appendChild(div);
+        });
+    }
+
+    function checkWinCondition() {
+        const allGuessed = solvedCategories.length === 4 && solvedCategories.every(c => c.guessed);
+        if (allGuessed) {
+            showStatus("🎉 Herzlichen Glückwunsch! Alle Wörter und Kategorien gelöst!", "green");
+            document.getElementById('action-controls').style.display = 'none';
+        }
+    }
+
+    function showStatus(text, color) {
+        const statusEl = document.getElementById('status-bar');
+        statusEl.innerText = text;
+        statusEl.style.color = color;
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
