@@ -44,20 +44,44 @@
         .solved-group {
             padding: 15px;
             border-radius: 8px;
-            color: #fff;
+            color: #333;
             text-align: center;
             font-weight: bold;
             animation: fadeIn 0.5s ease-in-out;
+            border: 2px dashed rgba(0,0,0,0.1);
         }
         .solved-title {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #111;
+        }
+        .category-input-container {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            align-items: center;
+        }
+        .category-input {
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 0.9rem;
+            width: 70%;
+        }
+        .category-btn {
+            padding: 5px 10px;
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
         }
         .solved-words {
             font-size: 0.95rem;
             font-weight: normal;
+            margin-top: 5px;
         }
         .grid {
             display: grid;
@@ -164,7 +188,7 @@
 
     <div class="grid" id="grid"></div>
 
-    <div class="controls">
+    <div class="controls" id="action-controls">
         <button class="btn" onclick="shuffleTiles()">Mischen</button>
         <button class="btn" onclick="deselectAll()">Auswahl aufheben</button>
         <button class="btn btn-primary" onclick="submitGuess()">Abschicken</button>
@@ -177,23 +201,27 @@
     const groups = [
         {
             title: "Leitlinien quantitativer Forschung",
+            keywords: ["leitlinien", "prinzipien", "merkmale", "gütekriterien"],
             words: ["Transparenz", "Standardisierung", "Objektivität", "Operationalisierung"],
-            color: "#f5d76f" // Gelblich
+            color: "#f5d76f"
         },
         {
             title: "Datentypen",
-            words: ["Zahlen", "Texte", "Bilder", "Video"], // Hinweis: Klassisch in Quanti nur Zahlen, aber exakt aus der Grafik übernommen!
-            color: "#a3e4d7" // Türkis
+            keywords: ["datentypen", "daten", "material"],
+            words: ["Zahlen", "Texte", "Bilder", "Video"],
+            color: "#a3e4d7"
         },
         {
             title: "Zielsetzung",
+            keywords: ["zielsetzung", "ziele", "forschungslogik", "ausrichtung"],
             words: ["Beschreiben", "Erklären", "Verallgemeinern", "Prognostizieren"],
-            color: "#f9e79f" // Hellgelb
+            color: "#f9e79f"
         },
         {
             title: "Forschungsprozess",
+            keywords: ["forschungsprozess", "prozess", "schrittean", "ablauf"],
             words: ["Präzise Forschungsfrage", "Theorie", "Hypothesen", "Datenaufbereitung und -analyse"],
-            color: "#bb8fce" // Lila
+            color: "#bb8fce"
         }
     ];
 
@@ -202,7 +230,6 @@
     let mistakesLeft = 4;
     let solvedCategories = [];
 
-    // Initialisiere Tiles
     function initGame() {
         currentTiles = [];
         groups.forEach((group, groupIndex) => {
@@ -276,22 +303,22 @@
         const isMatch = selectedGroupIndices.every(g => g === firstGroup);
 
         if (isMatch) {
-            // Richtig!
             const foundGroup = groups[firstGroup];
-            solvedCategories.push(foundGroup);
+            // Wir merken uns die Gruppe als "gelöst, aber Titel muss noch erraten werden"
+            solvedCategories.push({
+                ...foundGroup,
+                guessed: false,
+                userTitleText: ""
+            });
 
-            // Entferne gelöste Wörter aus currentTiles
             currentTiles = currentTiles.filter(t => t.groupIndex !== firstGroup);
             selectedTiles = [];
             
             renderSolvedGroups();
             renderGrid();
-            showStatus("Richtig!", "green");
+            showStatus("Richtig! Jetzt die passende Überschrift eingeben.", "green");
 
-            if (solvedCategories.length === 4) {
-                showStatus("🎉 Herzlichen Glückwunsch! Alle Gruppen gelöst!", "green");
-                document.querySelector('.controls').style.display = 'none';
-            }
+            checkWinCondition();
         } else {
             mistakesLeft--;
             updateMistakesDisplay();
@@ -300,27 +327,64 @@
 
             if (mistakesLeft <= 0) {
                 showStatus("Leider verloren! Das Spiel ist vorbei.", "red");
-                document.querySelector('.controls').style.display = 'none';
+                document.getElementById('action-controls').style.display = 'none';
             } else {
                 showStatus("Leider falsch. Versuch es nochmal!", "red");
             }
         }
     }
 
+    function checkCategoryTitle(index) {
+        const inputField = document.getElementById(`input-${index}`);
+        const userText = inputField.value.trim().toLowerCase();
+        const targetGroup = solvedCategories[index];
+
+        // Prüfen, ob ein Keyword übereinstimmt
+        const isCorrect = targetGroup.keywords.some(kw => userText.includes(kw));
+
+        if (isCorrect || userText === targetGroup.title.toLowerCase()) {
+            targetGroup.guessed = true;
+            renderSolvedGroups();
+            showStatus("Super! Kategorie-Name erraten!", "green");
+            checkWinCondition();
+        } else {
+            showStatus("Das war noch nicht der richtige Begriff für die Überschrift. Probier's nochmal!", "orange");
+        }
+    }
+
     function renderSolvedGroups() {
         const container = document.getElementById('solved-groups');
         container.innerHTML = '';
-        solvedCategories.forEach(cat => {
+        solvedCategories.forEach((cat, index) => {
             const div = document.createElement('div');
             div.className = 'solved-group';
             div.style.backgroundColor = cat.color;
-            div.style.color = '#333';
-            div.innerHTML = `
-                <div class="solved-title">${cat.title}</div>
-                <div class="solved-words">${cat.words.join(', ')}</div>
-            `;
+            
+            if (cat.guessed) {
+                div.innerHTML = `
+                    <div class="solved-title" style="font-weight: bold; font-size: 1.1rem;">${cat.title}</div>
+                    <div class="solved-words">${cat.words.join(', ')}</div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="solved-title">🔒 <em>Kategorie ${index + 1} erraten! Wie lautet die Überschrift?</em></div>
+                    <div class="category-input-container">
+                        <input type="text" id="input-${index}" class="category-input" placeholder="Überschrift eingeben...">
+                        <button class="category-btn" onclick="checkCategoryTitle(${index})">Prüfen</button>
+                    </div>
+                    <div class="solved-words">${cat.words.join(', ')}</div>
+                `;
+            }
             container.appendChild(div);
         });
+    }
+
+    function checkWinCondition() {
+        const allGuessed = solvedCategories.length === 4 && solvedCategories.every(c => c.guessed);
+        if (allGuessed) {
+            showStatus("🎉 Herzlichen Glückwunsch! Alle Wörter und Kategorien gelöst!", "green");
+            document.getElementById('action-controls').style.display = 'none';
+        }
     }
 
     function showStatus(text, color) {
@@ -329,7 +393,6 @@
         statusEl.style.color = color;
     }
 
-    // Spiel starten
     initGame();
 </script>
 
